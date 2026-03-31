@@ -1,77 +1,77 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AR Hologram - Full Autoplay</title>
-    
+    <title>AR Installation - Barcode 2 Edition</title>
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; }
-        
-        /* Correzione per il video della webcam: evita lo zoom eccessivo */
-        #arjs-video {
-            object-fit: cover !important;
-            width: 100vw !important;
-            height: 100vh !important;
+        body { margin: 0; overflow: hidden; background: #000; }
+        #ar-instructions {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 30px;
+            font-family: sans-serif;
+            text-align: center;
+            pointer-events: none;
+            line-height: 1.4;
         }
     </style>
 </head>
-
 <body style="margin: 0px; overflow: hidden;">
 
-    <a-scene embedded 
-             vr-mode-ui="enabled: false"
-             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false; sourceWidth:1280; sourceHeight:720; displayWidth:1280; displayHeight:720;">
+    <div id="ar-instructions">Inquadra il <strong>BARCODE 2</strong> e <br><strong>TOCCA LO SCHERMO PER L'AUDIO</strong></div>
+
+    <a-scene embedded vr-mode-ui="enabled: false" 
+             arjs="sourceType: webcam; 
+                   debugUIEnabled: false; 
+                   detectionMode: mono_and_matrix; 
+                   matrixCodeType: 3x3;">
 
         <a-assets>
-            <video id="ologrammaVideo" 
-                   src="vd1-loop.mp4" 
-                   preload="auto" 
-                   loop="true" 
-                   autoplay 
-                   muted 
-                   playsinline 
-                   webkit-playsinline 
-                   crossorigin="anonymous">
-            </video>
+            <video id="vid" src="vd1-loop.mp4" loop="true" autoplay muted playsinline crossorigin="anonymous"></video>
+            <audio id="musica" src="musica.mp3" loop="true" crossorigin="anonymous"></audio>
         </a-assets>
 
         <a-marker type="barcode" value="2">
-            
             <a-plane 
-                src="#ologrammaVideo" 
+                src="#vid" 
                 position="0 1 0" 
-                rotation="0 90 0" 
-                width="1.2" 
-                height="2.1" 
-                material="shader: flat; blending: additive; transparent: true; side: double; opacity: 1;">
+                rotation="-90 0 0" 
+                width="1.5" 
+                height="2.5" 
+                material="shader: flat; transparent: true; blending: additive; side: double; depthWrite: false;">
             </a-plane>
-
         </a-marker>
 
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        window.addEventListener('load', function () {
-            var video = document.querySelector('#ologrammaVideo');
-            
-            // Tenta l'avvio immediato. Funzionerà perché il video è MUTED.
-            video.play().catch(function(error) {
-                console.log("Autoplay automatico fallito. Riprovo al caricamento della scena.");
-            });
+        const video = document.querySelector('#vid');
+        const audio = document.querySelector('#musica');
+        const overlay = document.querySelector('#ar-instructions');
+        const marker = document.querySelector('a-marker');
 
-            // Se il primo tentativo fallisce, riprova quando AR.js è pronto
-            document.querySelector('a-scene').addEventListener('loaded', function () {
-                video.play().catch(function(error) {
-                    console.error("Autoplay bloccato definitivamente. L'utente deve interagire.");
-                });
-            });
+        // Sblocco Audio al primo tocco
+        window.addEventListener('click', function() {
+            audio.play().catch(e => console.log("Errore audio:", e));
+            video.play();
+            overlay.style.display = 'none';
+        }, { once: true });
+
+        // Gestione Play quando il marker Barcode 2 viene visto
+        marker.addEventListener('markerFound', function() {
+            video.play();
+            console.log("Barcode 2 rilevato");
         });
     </script>
-
 </body>
 </html>
