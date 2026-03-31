@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ar-gr by Diego Capani</title>
+    <title>ar-gr by Diego Capani - Fixed Capture</title>
     
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
     <style>
-        /* Reset e visibilità webcam */
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: transparent !important;
+            overflow: hidden; background-color: #000;
         }
 
+        /* Forza il video a coprire lo schermo correttamente */
         #arjs-video {
             object-fit: cover !important;
             width: 100vw !important;
@@ -28,26 +28,21 @@
         /* Pulsante Scatto */
         #btn-foto {
             position: fixed;
-            bottom: 30px;
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
-            width: 75px;
-            height: 75px;
-            background: rgba(255, 255, 255, 0.8);
+            width: 70px;
+            height: 70px;
+            background: white;
             border-radius: 50%;
-            border: 5px solid #fff;
+            border: 5px solid rgba(0,0,0,0.2);
             z-index: 10000;
             cursor: pointer;
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
-            -webkit-tap-highlight-color: transparent;
         }
 
-        #btn-foto:active { 
-            background: #ff4444; 
-            transform: translateX(-50%) scale(0.9); 
-        }
+        #btn-foto:active { background: #ff4444; }
 
-        /* Effetto Flash */
         #flash {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: white; opacity: 0; z-index: 10001; pointer-events: none;
@@ -63,7 +58,7 @@
     <a-scene 
         embedded 
         vr-mode-ui="enabled: false"
-        renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;"
+        renderer="preserveDrawingBuffer: true; alpha: true;"
         arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;">
 
         <a-assets>
@@ -73,9 +68,9 @@
         <a-marker type="barcode" value="2">
             <a-entity 
                 gltf-model="#modello-1" 
-                scale="8 8 8" 
+                scale="6 6 6" 
                 position="0 0 0" 
-                rotation="-90 0 0">
+                rotation="0 90 0">
             </a-entity>
         </a-marker>
 
@@ -83,7 +78,7 @@
     </a-scene>
 
     <script>
-        // Fix visibilità webcam per evitare lo schermo nero all'avvio
+        // Assicura che la webcam sia visibile sotto il 3D
         const observer = new MutationObserver(() => {
             const video = document.querySelector('#arjs-video');
             if (video) {
@@ -93,7 +88,7 @@
         });
         observer.observe(document.body, { childList: true });
 
-        // Logica per scattare e scaricare la foto
+        // LOGICA DI SCATTO SENZA DECENTRAMENTO
         document.querySelector('#btn-foto').addEventListener('click', function() {
             const scene = document.querySelector('a-scene');
             const video = document.querySelector('#arjs-video');
@@ -101,40 +96,49 @@
             
             if (!video) return;
 
-            // 1. Creazione canvas master con risoluzione video nativa
+            // 1. Il canvas finale avrà le dimensioni esatte della visuale dell'utente (lo schermo)
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = window.innerWidth * window.devicePixelRatio;
+            canvas.height = window.innerHeight * window.devicePixelRatio;
             const ctx = canvas.getContext('2d');
 
-            // Effetto flash visivo
+            // Flash visivo
             flash.style.opacity = "1";
             setTimeout(() => { flash.style.opacity = "0"; }, 100);
 
-            // 2. Disegno della webcam (Sfondo reale)
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // 3. Calcolo centratura (Per allineare il 3D al video dello sfondo)
+            // 2. Disegna la WEBCAM adattandola al canvas (ritaglio "cover")
             const vWidth = video.videoWidth;
             const vHeight = video.videoHeight;
-            const cWidth = scene.canvas.clientWidth;
-            const cHeight = scene.canvas.clientHeight;
-            const scale = Math.max(vWidth / cWidth, vHeight / cHeight);
-            const xOffset = (vWidth - cWidth * scale) / 2;
-            const yOffset = (vHeight - cHeight * scale) / 2;
+            const targetRatio = canvas.width / canvas.height;
+            const videoRatio = vWidth / vHeight;
 
-            // 4. Forza rendering della scena A-Frame e sovrapposizione
+            let sX, sY, sW, sH;
+
+            if (videoRatio > targetRatio) {
+                // Video più largo dello schermo
+                sH = vHeight;
+                sW = vHeight * targetRatio;
+                sX = (vWidth - sW) / 2;
+                sY = 0;
+            } else {
+                // Video più stretto dello schermo
+                sW = vWidth;
+                sH = vWidth / targetRatio;
+                sX = 0;
+                sY = (vHeight - sH) / 2;
+            }
+
+            ctx.drawImage(video, sX, sY, sW, sH, 0, 0, canvas.width, canvas.height);
+
+            // 3. Disegna il LIVELLO 3D (A-Frame)
+            // Poiché A-Frame è già adattato allo schermo, lo disegniamo sopra 1:1
             scene.renderer.render(scene.object3D, scene.camera);
-            ctx.drawImage(
-                scene.canvas, 
-                0, 0, scene.canvas.width, scene.canvas.height, 
-                xOffset, yOffset, cWidth * scale, cHeight * scale
-            );
+            ctx.drawImage(scene.canvas, 0, 0, canvas.width, canvas.height);
 
-            // 5. Download dell'immagine risultante
+            // 4. Download
             const link = document.createElement('a');
             link.download = `AR_Snapshot_${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png').replace("image/png", "image/octet-stream");
+            link.href = canvas.toDataURL('image/png');
             link.click();
         });
     </script>
