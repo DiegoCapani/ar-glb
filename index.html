@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Selfie - Pose Random Fix</title>
+    <title>AR Selfie - 6 Pose Giga</title>
 
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -15,6 +15,7 @@
             position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
             width:85px; height:85px; border-radius:50%; background:white;
             border:6px solid black; z-index:999; cursor: pointer;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
         }
         #countdown {
             position:fixed; top:40%; width:100%; text-align:center;
@@ -32,13 +33,16 @@
 <a-scene
     embedded
     vr-mode-ui="enabled:false"
-    renderer="logarithmicDepthBuffer:true; alpha:true; preserveDrawingBuffer:true;"
+    renderer="logarithmicDepthBuffer:true; alpha:true; preserveDrawingBuffer:true; antialias: true;"
     arjs="sourceType:webcam; trackingMethod:best; debugUIEnabled:false; canvasWidth:1280; canvasHeight:720;">
 
     <a-assets>
         <img id="posa1" src="assets/luzzetti1.png" crossorigin="anonymous">
         <img id="posa2" src="assets/luzzetti2.png" crossorigin="anonymous">
         <img id="posa3" src="assets/luzzetti3.png" crossorigin="anonymous">
+        <img id="posa4" src="assets/luzzetti4.png" crossorigin="anonymous">
+        <img id="posa5" src="assets/luzzetti5.png" crossorigin="anonymous">
+        <img id="posa6" src="assets/luzzetti6.png" crossorigin="anonymous">
     </a-assets>
 
     <a-marker preset="hiro" keep-visible id="marker">
@@ -84,13 +88,16 @@
         }
     });
 
-    // --- 3. FUNZIONE CAMBIO POSA RANDOM (CORRETTA) ---
+    // --- 3. FUNZIONE CAMBIO POSA RANDOM (Aggiornata per 6 immagini) ---
     function cambiaPosaRandom() {
         const personaggio = document.querySelector("#personaggio");
-        const pose = ["#posa1", "#posa2", "#posa3"];
+        // Array aggiornato con i 6 ID degli assets
+        const pose = ["#posa1", "#posa2", "#posa3", "#posa4", "#posa5", "#posa6"];
+        
+        // Scegliamo un ID a caso dall'array
         const scelta = pose[Math.floor(Math.random() * pose.length)];
         
-        // Per forzare AR.js a cambiare l'immagine, aggiorniamo il materiale direttamente
+        // Applichiamo la nuova texture direttamente al materiale
         personaggio.setAttribute("material", "src", scelta);
     }
 
@@ -99,9 +106,12 @@
     const countdownEl = document.getElementById("countdown");
 
     btn.onclick = async () => {
+        btn.style.pointerEvents = "none";
+        btn.style.opacity = "0.5"; // Feedback: tasto disattivato
+
+        // Cambia la posa all'inizio del countdown
         cambiaPosaRandom();
 
-        btn.style.pointerEvents = "none";
         for(let i=3; i>0; i--){
             countdownEl.style.display="block";
             countdownEl.innerText=i;
@@ -109,7 +119,9 @@
         }
         countdownEl.style.display="none";
         scattaFoto();
+        
         btn.style.pointerEvents = "auto";
+        btn.style.opacity = "1"; // Feedback: tasto riattivato
     };
 
     // --- 5. LOGICA SCATTO FOTO ---
