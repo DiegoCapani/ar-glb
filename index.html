@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Selfie - Flash e Suono</title>
+    <title>AR Selfie - Look-at Stabilizzato</title>
 
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
-
     <style>
         body { margin:0; overflow:hidden; font-family:sans-serif; }
         #scatta {
@@ -47,11 +45,11 @@
 
 <audio id="audioScatto" src="assets/shutter.mp3" preload="auto"></audio>
 
-    <a-scene
+<a-scene
     embedded
     vr-mode-ui="enabled:false"
     renderer="logarithmicDepthBuffer:true; alpha:true; preserveDrawingBuffer:true; antialias: true;"
-    arjs="sourceType:webcam; trackingMethod:best; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled:false; canvasWidth:1280; canvasHeight:720;">
+    arjs="sourceType:webcam; trackingMethod:best; debugUIEnabled:false; canvasWidth:1280; canvasHeight:720;">
 
     <a-assets>
         <img id="posa1" src="assets/luzzetti1.png" crossorigin="anonymous">
@@ -62,26 +60,19 @@
         <img id="posa6" src="assets/luzzetti6.png" crossorigin="anonymous">
     </a-assets>
 
-   <a-marker 
-    preset="hiro" 
-    keep-visible 
-    id="marker"
-    smooth="true" 
-    smoothCount="10" 
-    smoothTolerance="0.01" 
-    smoothThreshold="5">
-       
+    <a-marker preset="hiro" keep-visible id="marker">
         <a-entity id="wrapper" rotation="0 0 0">
             <a-plane
                 id="personaggio"
                 src="#posa1"
-                position="0 0 -0.5" 
+                position="0 0.1 0" 
+                rotation="0 0 0" 
                 width="17" 
                 height="17"
                 transparent="true"
                 alpha-test="0.5"
                 shader="flat"
-                vertical-look-at>
+                stabilized-look-at>
             </a-plane>
         </a-entity>
     </a-marker>
@@ -91,9 +82,8 @@
 </a-scene>
 
 <script>
-
-  // --- 1. LOOK-AT VERTICALE STABILIZZATO (Sostituisci solo questo) ---
-   AFRAME.registerComponent('vertical-look-at', {
+    // --- 1. NUOVO COMPONENTE LOOK-AT STABILIZZATO (BLINDA L'ASSE Z) ---
+    AFRAME.registerComponent('stabilized-look-at', {
         tick: function () {
             const target = document.querySelector('#main-camera');
             if (!target) return;
@@ -106,17 +96,20 @@
             const myPos = new THREE.Vector3();
             this.el.object3D.getWorldPosition(myPos);
 
-            // 3. Calcoliamo l'angolo verso la camera (solo destra/sinistra)
-            const angle = Math.atan2(targetPos.x - myPos.x, targetPos.z - myPos.z);
+            // 3. Calcoliamo la direzione (vettore) tra noi e la camera
+            const direction = new THREE.Vector3().subVectors(targetPos, myPos);
 
-            // 4. APPLICHIAMO LA ROTAZIONE
-            // Usiamo 'YXZ' come ordine per assicurarci che Y sia calcolato per primo
-            this.el.object3D.rotation.order = 'YXZ';
-            
-            // X = 0 (parallelo al muro)
-            // Y = angle (ti segue a destra/sinistra)
-            // Z = 0 (BLOCCATO: niente effetto volante)
-           this.el.object3D.rotation.set(0, angle + Math.PI/2, 0);
+            // 4. IMPORTANTISSIMO: Annulliamo la componente verticale (Y) della direzione
+            // Questo "costringe" il calcolo a ignorare se il telefono è alto, basso o inclinato a volante
+            direction.y = 0;
+
+            // 5. Creiamo una matrice di rotazione provvisoria che "guarda" la direzione pulita
+            const helper = new THREE.Object3D();
+            helper.lookAt(direction);
+
+            // 6. Applichiamo SOLO la rotazione Y risultante al personaggio
+            // Lasciamo X e Z esplicitamente a 0 (niente effetto volante, niente taglio strano)
+            this.el.object3D.rotation.set(0, helper.rotation.y, 0);
         }
     });
 
@@ -149,8 +142,8 @@
 
         cambiaPosaRandom();
 
-        // Countdown
-        for(let i=0; i>0; i--){
+        // Countdown (impostato a 1 secondo per velocità)
+        for(let i=1; i>0; i--){
             countdownEl.style.display="block";
             countdownEl.innerText=i;
             await new Promise(r=>setTimeout(r,1000));
@@ -162,7 +155,7 @@
         setTimeout(() => { flashEl.classList.remove("flash-active"); }, 300);
 
         // EFFETTO SUONO
-        audioScatto.play();
+        try { audioScatto.play(); } catch(e) {}
 
         // ESECUZIONE SCATTO
         scattaFoto();
