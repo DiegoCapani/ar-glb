@@ -93,27 +93,29 @@
 <script>
 
   // --- 1. LOOK-AT VERTICALE STABILIZZATO (Sostituisci solo questo) ---
-    AFRAME.registerComponent('vertical-look-at', {
+   AFRAME.registerComponent('vertical-look-at', {
         tick: function () {
             const target = document.querySelector('#main-camera');
             if (!target) return;
 
-            // 1. Otteniamo le posizioni mondiali per precisione
+            // 1. Otteniamo la posizione della camera
             const targetPos = new THREE.Vector3();
             target.object3D.getWorldPosition(targetPos);
             
+            // 2. Otteniamo la nostra posizione
             const myPos = new THREE.Vector3();
             this.el.object3D.getWorldPosition(myPos);
 
-            // 2. Calcoliamo l'angolo solo per girare a destra/sinistra (asse Y)
-            const dx = targetPos.x - myPos.x;
-            const dz = targetPos.z - myPos.z;
-            const angle = Math.atan2(dx, dz);
+            // 3. Calcoliamo l'angolo verso la camera (solo destra/sinistra)
+            const angle = Math.atan2(targetPos.x - myPos.x, targetPos.z - myPos.z);
 
-            // 3. Applichiamo la rotazione: 
-            // X = -1.57 radianti (che sono -90 gradi) per stare "in piedi" sul marker
-            // Y = l'angolo verso la camera
-            // Z = 0 FISSO (così non ruota come un volante)
+            // 4. APPLICHIAMO LA ROTAZIONE
+            // Usiamo 'YXZ' come ordine per assicurarci che Y sia calcolato per primo
+            this.el.object3D.rotation.order = 'YXZ';
+            
+            // X = 0 (parallelo al muro)
+            // Y = angle (ti segue a destra/sinistra)
+            // Z = 0 (BLOCCATO: niente effetto volante)
             this.el.object3D.rotation.set(0, angle, 0);
         }
     });
