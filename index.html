@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Selfie - Look-at Stabilizzato</title>
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    <title>AR Selfie - Flash e Suono</title>
+
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+
     <style>
         body { margin:0; overflow:hidden; font-family:sans-serif; }
         #scatta {
@@ -45,11 +47,11 @@
 
 <audio id="audioScatto" src="assets/shutter.mp3" preload="auto"></audio>
 
-<a-scene
+    <a-scene
     embedded
     vr-mode-ui="enabled:false"
     renderer="logarithmicDepthBuffer:true; alpha:true; preserveDrawingBuffer:true; antialias: true;"
-    arjs="sourceType:webcam; trackingMethod:best; debugUIEnabled:false; canvasWidth:1280; canvasHeight:720;">
+    arjs="sourceType:webcam; trackingMethod:best; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled:false; canvasWidth:1280; canvasHeight:720;">
 
     <a-assets>
         <img id="posa1" src="assets/luzzetti1.png" crossorigin="anonymous">
@@ -60,19 +62,27 @@
         <img id="posa6" src="assets/luzzetti6.png" crossorigin="anonymous">
     </a-assets>
 
-    <a-marker preset="hiro" keep-visible id="marker">
+   <a-marker 
+    preset="hiro" 
+    keep-visible 
+    id="marker"
+    smooth="true" 
+    smoothCount="10" 
+    smoothTolerance="0.01" 
+    smoothThreshold="5">
+       
         <a-entity id="wrapper" rotation="0 0 0">
-<a-plane
-    id="personaggio"
-    src="#posa1"
-    position="0 0.1 0" 
-    width="17" 
-    height="17"
-    transparent="true"
-    alpha-test="0.5"
-    shader="flat"
-    vertical-look-at>
-</a-plane>
+            <a-plane
+                id="personaggio"
+                src="#posa1"
+                position="0 0 -0.5" 
+                width="17" 
+                height="17"
+                transparent="true"
+                alpha-test="0.5"
+                shader="flat"
+                vertical-look-at>
+            </a-plane>
         </a-entity>
     </a-marker>
 
@@ -81,36 +91,17 @@
 </a-scene>
 
 <script>
-   
     // --- 1. LOOK-AT VERTICALE ---
-   AFRAME.registerComponent('vertical-look-at', {
-    tick: function () {
-        const target = document.querySelector('#main-camera');
-        if (!target) return;
+    AFRAME.registerComponent('vertical-look-at', {
+        tick: function () {
+            const target = document.querySelector('#main-camera');
+            if (!target) return;
+            const targetPos = target.object3D.position;
+            const myPos = this.el.object3D.position;
+            this.el.object3D.lookAt(targetPos.x, myPos.y, targetPos.z);
+        }
+    });
 
-        // 1. Otteniamo la posizione della camera e dell'oggetto nel mondo
-        const targetPos = new THREE.Vector3();
-        const myPos = new THREE.Vector3();
-        target.object3D.getWorldPosition(targetPos);
-        this.el.object3D.getWorldPosition(myPos);
-
-        // 2. Calcoliamo la direzione verso la camera
-        const direction = new THREE.Vector3().subVectors(targetPos, myPos);
-
-        // 3. IMPORTANTISSIMO: Annulliamo la componente verticale (Y) della direzione
-        // Questo "costringe" il calcolo a ignorare se il telefono è alto, basso o inclinato
-        direction.y = 0;
-
-        // 4. Creiamo la rotazione finale
-        // Usiamo un oggetto di supporto per non mandare in tilt il sistema AR
-        const helper = new THREE.Object3D();
-        helper.lookAt(direction);
-
-        // 5. Applichiamo SOLO la rotazione Y al personaggio
-        // Lasciamo X e Z a 0 (niente effetto volante, niente taglio)
-        this.el.object3D.rotation.set(0, helper.rotation.y, 0);
-    }
-});
     // --- 2. KEEP VISIBLE ---
     AFRAME.registerComponent('keep-visible', {
         init: function () {
@@ -140,8 +131,8 @@
 
         cambiaPosaRandom();
 
-        // Countdown (impostato a 1 secondo per velocità)
-        for(let i=1; i>0; i--){
+        // Countdown
+        for(let i=0; i>0; i--){
             countdownEl.style.display="block";
             countdownEl.innerText=i;
             await new Promise(r=>setTimeout(r,1000));
@@ -153,7 +144,7 @@
         setTimeout(() => { flashEl.classList.remove("flash-active"); }, 300);
 
         // EFFETTO SUONO
-        try { audioScatto.play(); } catch(e) {}
+        audioScatto.play();
 
         // ESECUZIONE SCATTO
         scattaFoto();
