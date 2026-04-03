@@ -37,7 +37,7 @@
     arjs="sourceType:webcam; trackingMethod:best; debugUIEnabled:false; canvasWidth:1280; canvasHeight:720;">
 
     <a-assets>
-        <img id="artista-img" src="assets/luzzetti_1.png">
+       <img id="artista-img" src="assets/luzzetti.png" crossorigin="anonymous">
     </a-assets>
 
     <a-marker preset="hiro" 
@@ -50,18 +50,15 @@
         <a-light type="directional" position="1 3 2" intensity="0.8"></a-light>
 
         <a-entity id="wrapper" rotation="0 0 0">
-            <a-plane
-                id="personaggio"
-                src="#artista-img"
-                position="0 0 0"
-                width="1" 
-                height="1.75"
-                transparent="true"
-                alpha-test="0.5"
-                shader="flat"
-                vertical-look-at>
-            </a-plane>
-        </a-entity>
+        <a-plane
+            id="personaggio"
+            material="src: #artista-img; transparent: true; alphaTest: 0.5; shader: flat; side: double;"
+            position="0 0 0"
+            width="1" 
+            height="1.75"
+            vertical-look-at>
+        </a-plane>
+    </a-entity>
 
     </a-marker>
 
